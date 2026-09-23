@@ -106,7 +106,10 @@ class ScanBandwidth(BaseExecutor):
                     key="read_gbs",
                     unit="GB/s",
                     aggregation="best",
-                    notes="memchr is byte-serial in practice, so this is lower than the vectorised native kernels",
+                    notes=(
+                        "memchr is byte-serial in practice, so this is lower than the "
+                        "vectorised native kernels"
+                    ),
                 )
             ],
         )

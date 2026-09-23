@@ -16,7 +16,18 @@ from typing import Any
 
 from hwbench.schema import Device
 
-_VM_VENDORS = ("vmware", "virtualbox", "innotek", "qemu", "kvm", "microsoft corporation", "xen", "amazon ec2", "google", "alibaba")
+_VM_VENDORS = (
+    "vmware",
+    "virtualbox",
+    "innotek",
+    "qemu",
+    "kvm",
+    "microsoft corporation",
+    "xen",
+    "amazon ec2",
+    "google",
+    "alibaba",
+)
 
 
 def collect() -> Device:
@@ -26,7 +37,9 @@ def collect() -> Device:
 
     cores = _cpuinfo_cores(cpuinfo)
     cpu = {
-        "model": (_cpuinfo_field(cpuinfo, "model name") or _cpuinfo_field(cpuinfo, "Processor") or "").strip(),
+        "model": (
+            _cpuinfo_field(cpuinfo, "model name") or _cpuinfo_field(cpuinfo, "Processor") or ""
+        ).strip(),
         "vendor": (_cpuinfo_field(cpuinfo, "vendor_id") or "").strip(),
         "physical_cores": cores[0],
         "logical_cores": cores[1],
@@ -286,14 +299,22 @@ def _block_devices() -> list[dict[str, Any]]:
         real = dev
         if name.startswith("nvme"):
             real = dev / "device"
+            bus = "nvme"
+        elif name.startswith("sd"):
+            bus = "sata"
+        else:
+            bus = "unknown"
+        firmware = _first_line(str(dev / "device" / "firmware_rev")) or _first_line(
+            str(real / "firmware_rev")
+        )
         disks.append(
             {
                 "name": name,
                 "model": model,
                 "size_bytes": size,
-                "bus": "nvme" if name.startswith("nvme") else ("sata" if name.startswith("sd") else "unknown"),
+                "bus": bus,
                 "media": "hdd" if rotational == "1" else "ssd",
-                "firmware": _first_line(str(dev / "device" / "firmware_rev")) or _first_line(str(real / "firmware_rev")),
+                "firmware": firmware,
             }
         )
     return disks

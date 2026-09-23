@@ -31,7 +31,10 @@ def format_run(run: Run, *, show_samples: bool = False) -> str:
     )
     for disk in (dev.disks or [])[:4]:
         size = disk.get("size_bytes") or 0
-        lines.append(f"disk    {disk.get('model')}  {size / 1024**3:.0f} GB  {disk.get('media')} {disk.get('bus') or ''}")
+        bus = disk.get("bus") or ""
+        lines.append(
+            f"disk    {disk.get('model')}  {size / 1024**3:.0f} GB  {disk.get('media')} {bus}"
+        )
     lines.append("")
     lines.append(f"{'executor':<22} {'metric':<20} {'value':>16}  {'spread':>7}  bound")
     lines.append("-" * 82)

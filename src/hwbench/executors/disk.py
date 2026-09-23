@@ -15,6 +15,7 @@ leaderboard can tell the two apart.
 
 from __future__ import annotations
 
+import contextlib
 import ctypes
 import mmap
 import os
@@ -86,10 +87,8 @@ class RawFile:
             self._buf.close()
             self._big.close()
             if delete:
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(self.path)
-                except OSError:
-                    pass
 
     def _close(self) -> None:  # pragma: no cover - abstract
         raise NotImplementedError

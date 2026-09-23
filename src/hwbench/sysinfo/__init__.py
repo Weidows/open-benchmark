@@ -48,7 +48,7 @@ def _fill_common(device: Device) -> None:
 def _machine_class() -> str:
     if os.path.exists("/.dockerenv") or os.path.exists("/run/.containerenv"):
         return "container"
-    if os.environ.get("container"):
+    if os.environ.get("container"):  # noqa: SIM112 - runtime-provided var is lowercase
         return "container"
     if os.environ.get("WSL_DISTRO_NAME"):
         return "vm"  # WSL is virtualised hardware from the host's point of view

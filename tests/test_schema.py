@@ -8,14 +8,17 @@ from hwbench.schema import SCHEMA_VERSION, Device, Metric, Result, Run, read_run
 
 
 def _device(**overrides) -> Device:
-    base = dict(
-        os="windows",
-        arch="AMD64",
-        cpu={"model": "AMD Ryzen 9 5950X", "physical_cores": 16, "logical_cores": 32},
-        memory={"total_bytes": 64 * 1024**3, "modules": [{"locator": "DIMM 0", "size_bytes": 32 * 1024**3, "speed_mtps": 3600}]},
-        disks=[{"model": "Samsung SSD 990 PRO", "size_bytes": 2 * 10**12, "media": "ssd"}],
-        system={"model": "X570"},
-    )
+    base = {
+        "os": "windows",
+        "arch": "AMD64",
+        "cpu": {"model": "AMD Ryzen 9 5950X", "physical_cores": 16, "logical_cores": 32},
+        "memory": {
+            "total_bytes": 64 * 1024**3,
+            "modules": [{"locator": "DIMM 0", "size_bytes": 32 * 1024**3, "speed_mtps": 3600}],
+        },
+        "disks": [{"model": "Samsung SSD 990 PRO", "size_bytes": 2 * 10**12, "media": "ssd"}],
+        "system": {"model": "X570"},
+    }
     base.update(overrides)
     device = Device(**base)
     device.compute_fingerprint()

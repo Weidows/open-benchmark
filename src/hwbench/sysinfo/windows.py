@@ -7,6 +7,7 @@ the JSON it emits.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import subprocess
@@ -125,10 +126,8 @@ def _query() -> dict[str, Any]:
             raise RuntimeError((proc.stderr or "empty CIM response").strip()[:400])
         return json.loads(proc.stdout)
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(path)
-        except OSError:
-            pass
 
 
 def _rows(value: Any) -> list[dict[str, Any]]:
@@ -208,7 +207,7 @@ def _bios_date(value: Any) -> str:
             import datetime as _dt
 
             ts = float(digits) / 1000.0
-            return _dt.datetime.fromtimestamp(ts, _dt.timezone.utc).strftime("%Y-%m-%d")
+            return _dt.datetime.fromtimestamp(ts, _dt.UTC).strftime("%Y-%m-%d")
         except (ValueError, OverflowError, OSError):
             return text
     return f"{text[:4]}-{text[4:6]}-{text[6:8]}" if len(text) >= 8 and text[:8].isdigit() else text

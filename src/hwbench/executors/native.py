@@ -43,7 +43,7 @@ class Toolchain:
 
     # -- detection ------------------------------------------------------
     @classmethod
-    def detect(cls) -> "Toolchain":
+    def detect(cls) -> Toolchain:
         override = os.environ.get("HWBENCH_CC")
         candidates: list[tuple[str, list[str]]] = []
         if override:
@@ -68,7 +68,7 @@ class Toolchain:
         try:
             self._binary = self.build()
             return True
-        except Exception as exc:  # noqa: BLE001 - any compiler failure means "unavailable"
+        except Exception as exc:
             self.error = f"{type(exc).__name__}: {str(exc)[:200]}"
             self._binary = None
             return False

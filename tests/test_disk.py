@@ -11,8 +11,8 @@ import sys
 
 import pytest
 
-from hwbench.executors.disk import BLOCK_RAND, DiskRandom, DiskSequential, open_raw
 from hwbench.executors.base import Context
+from hwbench.executors.disk import BLOCK_RAND, DiskRandom, DiskSequential, open_raw
 
 pytestmark = pytest.mark.skipif(sys.platform == "darwin", reason="O_DIRECT semantics differ on macOS")
 

@@ -11,7 +11,7 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from hwbench.schema import Run
@@ -45,8 +45,10 @@ def submit(
     runs = _load(results)
     if not runs:
         raise RuntimeError("no runs found in the given paths")
+    for run in runs:
+        run.device.redact()  # hostnames/serials/raw blobs never leave the machine
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     fingerprints = {r.device.fingerprint or "unknown" for r in runs}
     branch = branch or f"results/{stamp}-{sorted(fingerprints)[0]}"
     dest_dir = repo_dir / target_dir

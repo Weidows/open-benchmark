@@ -151,7 +151,10 @@ class ThreadScaling(BaseExecutor):
                     key="scale_efficiency_pct",
                     unit="%",
                     aggregation="single",
-                    notes="all_threads / (single_thread * threads) * 100; <60% hints at power or thermal limits",
+                    notes=(
+                        "all_threads / (single_thread * threads) * 100; "
+                        "<60% hints at power or thermal limits"
+                    ),
                 ),
             ],
             tool_versions={"openssl": _openssl_version()},

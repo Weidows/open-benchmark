@@ -56,7 +56,7 @@ class Metric:
             self.n = len(self.samples)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Metric":
+    def from_dict(cls, data: dict[str, Any]) -> Metric:
         return _from_dict(cls, data)
 
     def to_dict(self) -> dict[str, Any]:
@@ -77,7 +77,7 @@ class Result:
     tool_versions: dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Result":
+    def from_dict(cls, data: dict[str, Any]) -> Result:
         data = dict(data)
         data["metrics"] = [Metric.from_dict(m) for m in data.get("metrics", [])]
         return _from_dict(cls, data)
@@ -142,8 +142,21 @@ class Device:
         return self.fingerprint
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Device":
+    def from_dict(cls, data: dict[str, Any]) -> Device:
         return _from_dict(cls, data)
+
+    def redact(self) -> Device:
+        """Drop identifiers that must not leave the machine.
+
+        Hostnames, disk serial numbers and the ``raw`` platform payload are
+        useful locally and unnecessary - or outright risky - in a public
+        leaderboard, so ``submit`` always calls this first.
+        """
+        self.hostname = ""
+        self.raw = {}
+        for disk in self.disks or []:
+            disk.pop("serial", None)
+        return self
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -164,7 +177,7 @@ class Run:
     notes: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Run":
+    def from_dict(cls, data: dict[str, Any]) -> Run:
         data = dict(data)
         data["device"] = Device.from_dict(data.get("device", {}))
         data["results"] = [Result.from_dict(r) for r in data.get("results", [])]

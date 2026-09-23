@@ -43,6 +43,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     scale = args.scale if args.scale is not None else (3.0 if args.suite == "full" else 1.0)
 
     device = collect_device()
+    if args.no_raw:
+        device.redact()
     toolchain = Toolchain.detect() if not args.no_native else Toolchain(None, "disabled")
     ctx = Context(
         suite=args.suite,
@@ -76,7 +78,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         try:
             ok, reason = ex.available(ctx)
             result = ex.run(ctx) if ok else Result(name=ex.name, status="skipped", error=reason)
-        except Exception as exc:  # noqa: BLE001 - one broken executor must not kill the run
+        except Exception as exc:
             result = Result(name=ex.name, status="error", error=f"{type(exc).__name__}: {exc}")
         result.duration_s = round(time.perf_counter() - t0, 3)
         run.results.append(result)
@@ -205,6 +207,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--workdir", default=str(Path.home() / ".cache" / "hwbench" / "work"))
     run.add_argument("--disk-path", default=None, help="directory for disk tests (default: workdir)")
     run.add_argument("--no-native", action="store_true", help="skip the optional C kernels")
+    run.add_argument(
+        "--no-raw",
+        action="store_true",
+        help="drop hostname / serials / platform blob (recommended before publishing results)",
+    )
     run.add_argument("--quiet", action="store_true")
     run.add_argument("--verbose", action="store_true", help="include raw samples")
     run.set_defaults(func=cmd_run)
@@ -250,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         print("interrupted", file=sys.stderr)
         return 130
-    except Exception as exc:  # noqa: BLE001 - CLI boundary
+    except Exception as exc:
         print(f"error: {type(exc).__name__}: {exc}", file=sys.stderr)
         return EXIT_ERROR
 

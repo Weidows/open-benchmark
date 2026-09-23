@@ -77,6 +77,4 @@ jobs:
           git push -u origin "$branch"
           gh pr create --base main --head "$branch" \
             --title "ci: hardware benchmark results (${{ github.sha }})" \
-            --body "Automated quick-suite run on GitHub runners (results/ci/, LEADERBOARD-quick.md).
-
-Runner numbers are noisy VMs: use them for same-runner regressions only. Real machines should submit with \`open-benchmark submit\`."
+            --body "Automated quick-suite run on GitHub runners (results/ci/, LEADERBOARD-quick.md). Runner numbers are noisy VMs: use them for same-runner regressions only. Real machines should submit with 'open-benchmark submit'."

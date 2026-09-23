@@ -1,0 +1,45 @@
+[project]
+name = "hwbench"
+version = "0.1.0"
+description = "Zero-dependency, agent-first hardware benchmark harness with a stable JSON schema"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Weidows" }]
+keywords = ["benchmark", "hardware", "cpu", "memory", "disk", "cli", "agent"]
+dependencies = []
+
+[project.optional-dependencies]
+# Only needed if the machine has no system C compiler but you still want the
+# native.* kernels: ziglang ships `zig cc`, which we use as the fallback.
+native = ["ziglang>=0.16"]
+
+[project.scripts]
+hwbench = "hwbench.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Weidows/hwbench"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hwbench"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "docs"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"

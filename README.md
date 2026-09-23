@@ -110,7 +110,7 @@ uv run open-benchmark submit results/local/mine.jsonl --repo-dir ../open-benchma
 
 ## CI
 
-[`.github/workflows/bench.yml`](.github/workflows/bench.yml)：matrix（ubuntu / windows / macos）跑 `quick` suite，产物上传为 artifact；汇总 job 下载所有 artifact 生成 `LEADERBOARD.md` 并以 PR 提交。CI runner 噪声大，只用于「同一 runner 上的回归」，跨机器榜单请用真机结果。
+[`.github/workflows/bench.yml`](.github/workflows/bench.yml)：matrix（ubuntu / windows / macos）跑 `quick` suite，产物上传为 artifact；汇总 job 把新结果放进 `results/ci/`，按 suite 分别重建 `LEADERBOARD.md`（full）与 `LEADERBOARD-quick.md`（quick），再开 PR。CI runner 是噪声很大的虚拟机，只用于同一 runner 上的回归；真机结果请用 `open-benchmark submit` 提交。
 
 ## 开发
 

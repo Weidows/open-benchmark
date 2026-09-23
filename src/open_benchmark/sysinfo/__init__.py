@@ -1,6 +1,6 @@
 """Device inventory, collected in-repo (no fastfetch / dmidecode dependency).
 
-Each platform module returns a :class:`hwbench.schema.Device`. Anything the OS
+Each platform module returns a :class:`open_benchmark.schema.Device`. Anything the OS
 will not tell us without extra privileges is left blank rather than guessed,
 and the untouched platform payload is kept under ``Device.raw`` so results can
 be re-parsed later when the collector learns more.
@@ -11,18 +11,18 @@ from __future__ import annotations
 import os
 import sys
 
-from hwbench.schema import Device
+from open_benchmark.schema import Device
 
 
 def collect() -> Device:
     """Detect the current device. Never raises: worst case returns a stub."""
     try:
         if sys.platform.startswith("win"):
-            from hwbench.sysinfo import windows as mod
+            from open_benchmark.sysinfo import windows as mod
         elif sys.platform == "darwin":
-            from hwbench.sysinfo import darwin as mod
+            from open_benchmark.sysinfo import darwin as mod
         else:
-            from hwbench.sysinfo import linux as mod
+            from open_benchmark.sysinfo import linux as mod
 
         device = mod.collect()
     except Exception as exc:  # pragma: no cover - platform surprises

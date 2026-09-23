@@ -1,5 +1,5 @@
 /*
- * hwbench native kernels - compiled on demand by hwbench.executors.native.
+ * open-benchmark native kernels - compiled on demand by open_benchmark.executors.native.
  *
  * Why a C file in the repo: memory latency, FP peak and multi-core scaling
  * cannot be measured from Python (interpreter overhead dominates), and the

@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from hwbench.schema import Device
+from open_benchmark.schema import Device
 
 _VM_VENDORS = (
     "vmware",

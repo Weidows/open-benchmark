@@ -1,19 +1,19 @@
-# hwbench
+# open-benchmark
 
 **Agent 友好的硬件性能基准测试工具**：零运行时依赖、纯 stdlib，执行器（executor）全部在本仓库内实现，不 shell out 到 fio / sysbench / CrystalDiskMark 等外部二进制；输出稳定 JSON schema，可直接被 agent 消费、聚合成榜单、以 PR 形式提交。
 
 ```bash
-uv run hwbench run --suite quick --json -            # 一条命令拿到机器全部指标（JSON 到 stdout）
-uv run hwbench run --suite full --json results/x.jsonl
-uv run hwbench leaderboard results/ --out LEADERBOARD.md
-uv run hwbench submit results/x.jsonl --repo-dir ../hwbench-results --dry-run
+uv run open-benchmark run --suite quick --json -            # 一条命令拿到机器全部指标（JSON 到 stdout）
+uv run open-benchmark run --suite full --json results/x.jsonl
+uv run open-benchmark leaderboard results/ --out LEADERBOARD.md
+uv run open-benchmark submit results/x.jsonl --repo-dir ../open-benchmark-results --dry-run
 ```
 
 ## 为什么不是又一个脚本
 
-| 需求 | 现成方案的问题 | hwbench 的做法 |
+| 需求 | 现成方案的问题 | open-benchmark 的做法 |
 |---|---|---|
-| 一条龙、可被程序调用 | VPS 测评脚本输出给人看的报告，字段不稳定 | `--json -` 输出 `hwbench.run/v1` 文档，stdout 只放 JSON，人读文本走 stderr |
+| 一条龙、可被程序调用 | VPS 测评脚本输出给人看的报告，字段不稳定 | `--json -` 输出 `open-benchmark.run/v1` 文档，stdout 只放 JSON，人读文本走 stderr |
 | 不依赖 GUI/闭源软件 | CrystalDiskMark / PerformanceTest 只有 GUI 或闭源 | 全部执行器在本仓库实现（含 Windows 无缓冲 I/O 的 ctypes 实现） |
 | 可复现、可追责 | 脚本调用外部二进制，版本漂移后结果不可比 | 每个结果记录 `backend` + 工具版本 + 参数；原生内核按源码 hash 编译缓存 |
 | 榜单可信 | 分不清"测到硬件"还是"测到解释器" | 每个 metric 带 `bound: hardware \| mixed \| interpreter`，榜单默认只取 `hardware` |
@@ -22,7 +22,7 @@ uv run hwbench submit results/x.jsonl --repo-dir ../hwbench-results --dry-run
 
 ```bash
 uv sync                 # 开发环境（含 pytest / ruff）
-uv run hwbench --help
+uv run open-benchmark --help
 # 或直接安装
 uv tool install .
 ```
@@ -33,12 +33,12 @@ uv tool install .
 
 | 命令 | 作用 |
 |---|---|
-| `hwbench run [--suite quick\|full] [--only X] [--exclude Y] [--repeat N] [--json PATH\|-]` | 跑基准并输出 run 文档 |
-| `hwbench devices [--json PATH]` | 只采集设备指纹（CPU/内存条/盘/GPU/BIOS） |
-| `hwbench executors [--json -]` | 列出执行器、标签与所属 suite |
-| `hwbench leaderboard PATH... [--bound hardware] [--metric cpu] [--out FILE]` | 把 JSONL 聚合成 markdown 榜单 |
-| `hwbench submit PATH... --repo-dir DIR [--dry-run]` | 把结果作为 PR 提交到榜单仓库 |
-| `hwbench schema` | 打印 schema 版本与示例文档 |
+| `open-benchmark run [--suite quick\|full] [--only X] [--exclude Y] [--repeat N] [--json PATH\|-]` | 跑基准并输出 run 文档 |
+| `open-benchmark devices [--json PATH]` | 只采集设备指纹（CPU/内存条/盘/GPU/BIOS） |
+| `open-benchmark executors [--json -]` | 列出执行器、标签与所属 suite |
+| `open-benchmark leaderboard PATH... [--bound hardware] [--metric cpu] [--out FILE]` | 把 JSONL 聚合成 markdown 榜单 |
+| `open-benchmark submit PATH... --repo-dir DIR [--dry-run]` | 把结果作为 PR 提交到榜单仓库 |
+| `open-benchmark schema` | 打印 schema 版本与示例文档 |
 
 `run` 的退出码：`0` 全部成功（`skipped` 不算失败）、`1` 有执行器报错。
 
@@ -69,7 +69,7 @@ uv tool install .
 
 ### 可选的原生内核
 
-`native.*` 需要 C 编译器（自动探测 `gcc` / `cc` / `clang` / `zig` / `cl` / `python -m ziglang cc`，可用 `HWBENCH_CC` 覆盖）。没有编译器时这些执行器报 `skipped` 并写明原因，其余指标照常输出——榜单里不会出现半真半假的数字。内核按「源码 hash + 编译器」缓存到 `~/.cache/hwbench/native/`。
+`native.*` 需要 C 编译器（自动探测 `gcc` / `cc` / `clang` / `zig` / `cl` / `python -m ziglang cc`，可用 `OPEN_BENCHMARK_CC` 覆盖）。没有编译器时这些执行器报 `skipped` 并写明原因，其余指标照常输出——榜单里不会出现半真半假的数字。内核按「源码 hash + 编译器」缓存到 `~/.cache/open-benchmark/native/`。
 
 机器上没有任何 C 编译器时，可以只为了拿到内核而装 zig：`uv sync --extra native`（ziglang wheel 提供 `zig cc`）。
 
@@ -79,11 +79,11 @@ uv tool install .
 
 ```json
 {
-  "schema": "hwbench.run/v1",
+  "schema": "open-benchmark.run/v1",
   "run_id": "9f1c...",
   "suite": "quick",
   "device": {"fingerprint": "ab12cd34ef567890", "cpu": {"model": "..."}, "memory": {...}, "disks": [...]},
-  "env": {"hwbench": "0.1.0", "native_toolchain": "gcc", "scale": 1.0},
+  "env": {"tool": "open-benchmark 0.1.0", "native_toolchain": "gcc", "scale": 1.0},
   "results": [
     {"name": "disk.seq", "status": "ok", "backend": "win32-unbuffered",
      "params": {"size_mb": 256, "block_kb": 4096},
@@ -99,9 +99,9 @@ uv tool install .
 ## 榜单与 PR
 
 ```bash
-uv run hwbench run --suite full --json results/local/mine.jsonl
-uv run hwbench leaderboard results --suite full --bound hardware --out LEADERBOARD.md
-uv run hwbench submit results/local/mine.jsonl --repo-dir ../hwbench-results
+uv run open-benchmark run --suite full --json results/local/mine.jsonl
+uv run open-benchmark leaderboard results --suite full --bound hardware --out LEADERBOARD.md
+uv run open-benchmark submit results/local/mine.jsonl --repo-dir ../open-benchmark-results
 ```
 
 榜单按 `device.fingerprint` 分组、对每个指标取中位数。`quick` 与 `full` 的工作量不同，混在一起会得到不可比的数字，所以默认会提示；用 `--suite` 明确口径。

@@ -1,8 +1,8 @@
-"""hwbench command line interface.
+"""open-benchmark command line interface.
 
 Designed for agents first: every command has a ``--json`` form that writes
 machine-readable output to stdout (``--json -``) and keeps human text on
-stderr, so ``hwbench run --suite quick --json - | jq .results`` always works.
+stderr, so ``open-benchmark run --suite quick --json - | jq .results`` always works.
 """
 
 from __future__ import annotations
@@ -13,14 +13,14 @@ import sys
 import time
 from pathlib import Path
 
-from hwbench import __version__
-from hwbench.executors import SUITES, names, resolve
-from hwbench.executors.base import Context
-from hwbench.executors.native import Toolchain
-from hwbench.report import format_run, leaderboard
-from hwbench.schema import Result, Run, read_runs, runtime_env, write_run
-from hwbench.submit import submit
-from hwbench.sysinfo import collect as collect_device
+from open_benchmark import __version__
+from open_benchmark.executors import SUITES, names, resolve
+from open_benchmark.executors.base import Context
+from open_benchmark.executors.native import Toolchain
+from open_benchmark.report import format_run, leaderboard
+from open_benchmark.schema import Result, Run, read_runs, runtime_env, write_run
+from open_benchmark.submit import submit
+from open_benchmark.sysinfo import collect as collect_device
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -63,7 +63,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         device=device,
         env={
             **runtime_env(),
-            "hwbench": __version__,
+            "tool": f"open-benchmark {__version__}",
             "native_toolchain": toolchain.version if toolchain.cmd else None,
             "scale": scale,
             "repeat": args.repeat,
@@ -132,7 +132,7 @@ def cmd_executors(args: argparse.Namespace) -> int:
 
 
 def cmd_schema(args: argparse.Namespace) -> int:
-    from hwbench.schema import SCHEMA_VERSION
+    from open_benchmark.schema import SCHEMA_VERSION
 
     doc = {
         "schema_version": SCHEMA_VERSION,
@@ -191,10 +191,10 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="hwbench",
+        prog="open-benchmark",
         description="Agent-first hardware benchmark harness (CPU / memory / disk) with a stable JSON schema.",
     )
-    parser.add_argument("--version", action="version", version=f"hwbench {__version__}")
+    parser.add_argument("--version", action="version", version=f"open-benchmark {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="run benchmarks and emit a run document")
@@ -204,7 +204,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--repeat", type=int, default=3, help="samples per executor (default 3)")
     run.add_argument("--scale", type=float, default=None, help="multiplier for workload sizes")
     run.add_argument("--json", default=None, help="JSONL output path, or '-' for stdout")
-    run.add_argument("--workdir", default=str(Path.home() / ".cache" / "hwbench" / "work"))
+    run.add_argument("--workdir", default=str(Path.home() / ".cache" / "open-benchmark" / "work"))
     run.add_argument("--disk-path", default=None, help="directory for disk tests (default: workdir)")
     run.add_argument("--no-native", action="store_true", help="skip the optional C kernels")
     run.add_argument(

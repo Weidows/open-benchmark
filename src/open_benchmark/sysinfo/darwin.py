@@ -8,7 +8,7 @@ import platform
 import subprocess
 from typing import Any
 
-from hwbench.schema import Device
+from open_benchmark.schema import Device
 
 _VM_VENDORS = ("vmware", "virtualbox", "parallels", "qemu", "utm", "apple virtualization")
 

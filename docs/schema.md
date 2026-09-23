@@ -1,4 +1,4 @@
-# Result schema — `hwbench.run/v1`
+# Result schema — `open-benchmark.run/v1`
 
 一个 run 就是一行 JSON（JSONL）。设计目标是「agent 直接读，不用猜」：单位固定、来源明确、参数齐全、原始样本保留。
 
@@ -6,12 +6,12 @@
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `schema` | string | `hwbench.run/v1`；破坏性变更才改这一版号 |
+| `schema` | string | `open-benchmark.run/v1`；破坏性变更才改这一版号 |
 | `run_id` | string | 本次运行的短 id（12 hex） |
 | `suite` | string | `quick` / `full` |
 | `started_at` / `ended_at` | string | UTC，`YYYY-MM-DDTHH:MM:SSZ` |
 | `device` | object | 设备指纹，见下 |
-| `env` | object | Python 版本、平台、`hwbench` 版本、原生工具链、`scale`、`repeat`、`wall_seconds` |
+| `env` | object | Python 版本、平台、`tool`（工具名+版本）、原生工具链、`scale`、`repeat`、`wall_seconds` |
 | `results` | array | 每个执行器一条，见下 |
 | `notes` | array[string] | 例如「native kernels unavailable: ...」 |
 

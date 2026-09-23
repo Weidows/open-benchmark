@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hwbench.sysinfo import linux
+from open_benchmark.sysinfo import linux
 
 CPUINFO = """processor\t: 0
 vendor_id\t: GenuineIntel

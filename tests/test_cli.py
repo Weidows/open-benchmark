@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 
-from hwbench.cli import main
-from hwbench.executors import SUITES, resolve
+from open_benchmark.cli import main
+from open_benchmark.executors import SUITES, resolve
 
 
 def test_suites_reference_existing_executors():
-    from hwbench.executors import BY_NAME
+    from open_benchmark.executors import BY_NAME
 
     for suite, members in SUITES.items():
         assert members, suite
@@ -42,7 +42,7 @@ def test_run_quick_subset_to_stdout(capsys):
     )
     assert code == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["schema"].startswith("hwbench.run/")
+    assert payload["schema"].startswith("open-benchmark.run/")
     assert payload["device"]["fingerprint"]
     assert payload["results"][0]["name"] == "cpu.python_sieve"
     assert payload["results"][0]["metrics"][0]["bound"] == "interpreter"
@@ -80,4 +80,4 @@ def test_leaderboard_reads_jsonl(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "cpu.python_sieve.passes_per_s" in out
     assert "| metric |" in out
-    assert subprocess.run([sys.executable, "-c", "import hwbench"], check=False).returncode == 0
+    assert subprocess.run([sys.executable, "-c", "import open_benchmark"], check=False).returncode == 0

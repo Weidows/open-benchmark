@@ -8,6 +8,7 @@ hash + compiler identity, so results can be traced back to a kernel revision.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -17,9 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from hwbench.executors.base import BaseExecutor, Context
-from hwbench.schema import Result
-from hwbench.stats import summarize
+from open_benchmark.executors.base import BaseExecutor, Context
+from open_benchmark.schema import Result
+from open_benchmark.stats import summarize
 
 KERNEL_SRC = Path(__file__).with_name("native") / "kernels.c"
 
@@ -29,7 +30,7 @@ def cache_dir() -> Path:
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
     else:
         base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
-    return Path(base) / "hwbench" / "native"
+    return Path(base) / "open-benchmark" / "native"
 
 
 class Toolchain:
@@ -44,7 +45,7 @@ class Toolchain:
     # -- detection ------------------------------------------------------
     @classmethod
     def detect(cls) -> Toolchain:
-        override = os.environ.get("HWBENCH_CC")
+        override = os.environ.get("OPEN_BENCHMARK_CC")
         candidates: list[tuple[str, list[str]]] = []
         if override:
             candidates.append((override, override.split()))
@@ -91,6 +92,10 @@ class Toolchain:
         if proc.returncode != 0 or not tmp.exists():
             raise RuntimeError((proc.stderr or proc.stdout or "compile failed").strip()[:400])
         tmp.replace(out)
+        # zig/cl leave sibling artifacts behind (e.g. a .pdb next to the temp exe)
+        for leftover in out.parent.glob(f"kernels-{digest}.tmp*"):
+            with contextlib.suppress(OSError):
+                leftover.unlink()
         return out
 
     # -- run ------------------------------------------------------------

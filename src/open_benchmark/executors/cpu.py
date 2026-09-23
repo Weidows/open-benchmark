@@ -17,9 +17,9 @@ import time
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 
-from hwbench.executors.base import BaseExecutor, Context, new_buffer
-from hwbench.schema import Result
-from hwbench.stats import summarize
+from open_benchmark.executors.base import BaseExecutor, Context, new_buffer
+from open_benchmark.schema import Result
+from open_benchmark.stats import summarize
 
 
 def _openssl_version() -> str:

@@ -19,7 +19,7 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "hwbench.run/v1"
+SCHEMA_VERSION = "open-benchmark.run/v1"
 
 #: How a metric was produced. Agents/leaderboards must filter on this:
 #: - ``hardware``      real device throughput measured by native code (syscalls, OpenSSL, zlib)

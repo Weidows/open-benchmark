@@ -78,8 +78,8 @@ def summarize(
     aggregation: str = "median",
     notes: str = "",
 ):
-    """Build a :class:`hwbench.schema.Metric` from raw samples."""
-    from hwbench.schema import Metric
+    """Build a :class:`open_benchmark.schema.Metric` from raw samples."""
+    from open_benchmark.schema import Metric
 
     samples = [float(x) for x in xs]
     if not samples:

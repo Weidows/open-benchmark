@@ -22,9 +22,9 @@ import random
 import sys
 import time
 
-from hwbench.executors.base import BaseExecutor, Context, aligned_buffer, new_buffer
-from hwbench.schema import Result
-from hwbench.stats import summarize
+from open_benchmark.executors.base import BaseExecutor, Context, aligned_buffer, new_buffer
+from open_benchmark.schema import Result
+from open_benchmark.stats import summarize
 
 _LIBC = None
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from hwbench.schema import Device, Run
-from hwbench.submit import submit
+from open_benchmark.schema import Device, Run
+from open_benchmark.submit import submit
 
 
 def _device_with_identifiers() -> Device:
@@ -44,11 +44,11 @@ def test_submit_redacts_before_writing(tmp_path, monkeypatch):
     repo = tmp_path / "results-repo"
     (repo / ".git").mkdir(parents=True)
 
-    monkeypatch.setattr("hwbench.submit.shutil.which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr("open_benchmark.submit.shutil.which", lambda name: "/usr/bin/gh")
     calls: list[list[str]] = []
 
     class _Proc:
-        stdout = "https://github.com/Weidows/hwbench-results/pull/1"
+        stdout = "https://github.com/Weidows/open-benchmark-results/pull/1"
         returncode = 0
 
     def fake_run(cmd, check=True):
@@ -57,7 +57,7 @@ def test_submit_redacts_before_writing(tmp_path, monkeypatch):
             return _Proc()
         return _Proc()
 
-    monkeypatch.setattr("hwbench.submit._run", fake_run)
+    monkeypatch.setattr("open_benchmark.submit._run", fake_run)
     url = submit([source], repo_dir=repo, dry_run=False)
     assert url.endswith("/pull/1")
     written = list((repo / "results").glob("*.jsonl"))

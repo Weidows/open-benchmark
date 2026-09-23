@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from statistics import median
 
-from hwbench.schema import Run
-from hwbench.stats import format_value
+from open_benchmark.schema import Run
+from open_benchmark.stats import format_value
 
 
 def format_run(run: Run, *, show_samples: bool = False) -> str:
@@ -15,7 +15,7 @@ def format_run(run: Run, *, show_samples: bool = False) -> str:
     lines: list[str] = []
     cpu = dev.cpu or {}
     mem = dev.memory or {}
-    lines.append(f"hwbench {run.schema}  run_id={run.run_id}  suite={run.suite}")
+    lines.append(f"open-benchmark {run.schema}  run_id={run.run_id}  suite={run.suite}")
     lines.append(
         f"device  {dev.fingerprint}  {dev.os} {dev.os_version} {dev.arch}  class={dev.machine_class}"
     )

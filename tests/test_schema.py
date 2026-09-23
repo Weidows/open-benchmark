@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from hwbench.schema import SCHEMA_VERSION, Device, Metric, Result, Run, read_runs, write_run
+from open_benchmark.schema import SCHEMA_VERSION, Device, Metric, Result, Run, read_runs, write_run
 
 
 def _device(**overrides) -> Device:

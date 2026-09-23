@@ -24,13 +24,13 @@ jobs:
         run: |
           uv sync
           mkdir -p results
-          uv run hwbench run --suite quick --json "results/${{ matrix.os }}.jsonl" --quiet
+          uv run open-benchmark run --suite quick --json "results/${{ matrix.os }}.jsonl" --quiet
       - name: Job summary
         shell: bash
-        run: uv run hwbench leaderboard results --out leaderboard-${{ matrix.os }}.md
+        run: uv run open-benchmark leaderboard results --out leaderboard-${{ matrix.os }}.md
       - uses: actions/upload-artifact@v4
         with:
-          name: hwbench-results-${{ matrix.os }}
+          name: open-benchmark-results-${{ matrix.os }}
           path: results/*.jsonl
 
   aggregate:
@@ -47,13 +47,13 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: ci-results
-          pattern: hwbench-results-*
+          pattern: open-benchmark-results-*
           merge-multiple: true
       - name: Build leaderboard
         shell: bash
         run: |
           uv sync
-          uv run hwbench leaderboard ci-results --bound hardware --out LEADERBOARD.md
+          uv run open-benchmark leaderboard ci-results --bound hardware --out LEADERBOARD.md
           cat LEADERBOARD.md
       - name: Commit results and open PR
         if: github.event_name != 'pull_request'
@@ -64,8 +64,8 @@ jobs:
           set -euo pipefail
           mkdir -p results/ci
           cp ci-results/*.jsonl results/ci/
-          git config user.name "hwbench-bot"
-          git config user.email "hwbench@users.noreply.github.com"
+          git config user.name "open-benchmark-bot"
+          git config user.email "open-benchmark@users.noreply.github.com"
           branch="ci/results-${{ github.run_id }}"
           git checkout -b "$branch"
           git add LEADERBOARD.md results/ci

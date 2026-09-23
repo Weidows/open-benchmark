@@ -1,9 +1,9 @@
 """Executor protocol shared by every in-repo benchmark.
 
 An executor owns exactly one benchmark: it probes for availability, runs the
-workload, and returns a :class:`hwbench.schema.Result`. No shelling out to
+workload, and returns a :class:`open_benchmark.schema.Result`. No shelling out to
 third-party benchmark binaries - the workload is implemented in this repo, so
-results are reproducible from the pinned hwbench version.
+results are reproducible from the pinned open-benchmark version.
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-from hwbench.schema import Result
-from hwbench.sysinfo import cores
+from open_benchmark.schema import Result
+from open_benchmark.sysinfo import cores
 
 
 @dataclass
@@ -25,12 +25,12 @@ class Context:
 
     suite: str = "quick"
     repeat: int = 3
-    workdir: Path = field(default_factory=lambda: Path(tempfile.gettempdir()) / "hwbench")
+    workdir: Path = field(default_factory=lambda: Path(tempfile.gettempdir()) / "open-benchmark")
     disk_path: Path | None = None
     scale: float = 1.0  # multiplies default buffer sizes (quick < full)
     use_native: bool = True
     log: Any = print
-    native: Any = None  # hwbench.executors.native.Toolchain | None
+    native: Any = None  # open_benchmark.executors.native.Toolchain | None
 
     def __post_init__(self) -> None:
         self.workdir = Path(self.workdir)

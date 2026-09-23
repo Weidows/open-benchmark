@@ -1,13 +1,13 @@
 """Executor registry and suite definitions.
 
 Suites are just ordered lists of executor names, so ``--suite full`` is
-reproducible from the hwbench version alone.
+reproducible from the open-benchmark version alone.
 """
 
 from __future__ import annotations
 
-from hwbench.executors import cpu, disk, memory, native
-from hwbench.executors.base import BaseExecutor, Context, Executor
+from open_benchmark.executors import cpu, disk, memory, native
+from open_benchmark.executors.base import BaseExecutor, Context, Executor
 
 ALL: list[Executor] = [
     cpu.HashThroughput(),

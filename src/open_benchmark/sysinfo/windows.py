@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 from typing import Any
 
-from hwbench.schema import Device
+from open_benchmark.schema import Device
 
 _PS = r"""
 $ErrorActionPreference = 'Stop'
@@ -101,7 +101,7 @@ def collect() -> Device:
 
 
 def _query() -> dict[str, Any]:
-    fd, path = tempfile.mkstemp(suffix=".ps1", prefix="hwbench-")
+    fd, path = tempfile.mkstemp(suffix=".ps1", prefix="openbenchmark-")
     try:
         with os.fdopen(fd, "w", encoding="utf-8-sig") as fh:
             fh.write(_PS)

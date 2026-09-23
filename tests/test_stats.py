@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hwbench.stats import best, mad, median, percentile, spread_pct, stdev, summarize
+from open_benchmark.stats import best, mad, median, percentile, spread_pct, stdev, summarize
 
 
 def test_median_odd_and_even():

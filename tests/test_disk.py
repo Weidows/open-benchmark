@@ -11,8 +11,8 @@ import sys
 
 import pytest
 
-from hwbench.executors.base import Context
-from hwbench.executors.disk import BLOCK_RAND, DiskRandom, DiskSequential, open_raw
+from open_benchmark.executors.base import Context
+from open_benchmark.executors.disk import BLOCK_RAND, DiskRandom, DiskSequential, open_raw
 
 pytestmark = pytest.mark.skipif(sys.platform == "darwin", reason="O_DIRECT semantics differ on macOS")
 
@@ -53,7 +53,7 @@ def test_disk_seq_runs_and_cleans_up(tmp_path):
     assert read and write
     assert read.value > 0 and write.value > 0
     assert read.bound == "hardware"
-    assert not list(tmp_path.glob("hwbench-seq-*.bin"))
+    assert not list(tmp_path.glob("open-benchmark-seq-*.bin"))
 
 
 def test_disk_random_runs_with_small_region(tmp_path):
@@ -65,4 +65,4 @@ def test_disk_random_runs_with_small_region(tmp_path):
     assert result.metric("rand_read_iops").value > 0
     assert result.metric("rand_write_iops").value > 0
     assert result.metric("rand_read_p99_us").value >= result.metric("rand_read_p50_us").value
-    assert not list(tmp_path.glob("hwbench-rand-*.bin"))
+    assert not list(tmp_path.glob("open-benchmark-rand-*.bin"))

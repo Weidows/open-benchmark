@@ -24,9 +24,9 @@ import sys
 import time
 from pathlib import Path
 
-from hwbench.executors.base import BaseExecutor, Context
-from hwbench.schema import Result
-from hwbench.stats import percentile, summarize
+from open_benchmark.executors.base import BaseExecutor, Context
+from open_benchmark.schema import Result
+from open_benchmark.stats import percentile, summarize
 
 BLOCK_SEQ = 4 * 1024 * 1024
 BLOCK_RAND = 4096
@@ -253,7 +253,7 @@ class DiskSequential(BaseExecutor):
     def run(self, ctx: Context) -> Result:
         size = ctx.bytes_for(self.size_mb)
         size -= size % BLOCK_SEQ
-        path = ctx.temp_file(f"hwbench-seq-{os.getpid()}.bin")
+        path = ctx.temp_file(f"open-benchmark-seq-{os.getpid()}.bin")
         raw = open_raw(path, unbuffered=True, block=BLOCK_SEQ)
         write_samples: list[float] = []
         read_samples: list[float] = []
@@ -305,7 +305,7 @@ class DiskRandom(BaseExecutor):
         region = ctx.bytes_for(self.region_mb)
         region -= region % BLOCK_RAND
         duration = 5.0 if ctx.suite == "full" else 2.0
-        path = ctx.temp_file(f"hwbench-rand-{os.getpid()}.bin")
+        path = ctx.temp_file(f"open-benchmark-rand-{os.getpid()}.bin")
         raw = open_raw(path, unbuffered=True, block=BLOCK_RAND)
         read_ops: list[float] = []
         read_lat: list[float] = []

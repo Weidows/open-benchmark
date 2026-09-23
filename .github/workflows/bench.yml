@@ -23,15 +23,15 @@ jobs:
         shell: bash
         run: |
           uv sync
-          mkdir -p results
-          uv run open-benchmark run --suite quick --json "results/${{ matrix.os }}.jsonl" --quiet
+          mkdir -p ci-out
+          uv run open-benchmark run --suite quick --json "ci-out/${{ matrix.os }}.jsonl" --quiet
       - name: Job summary
         shell: bash
-        run: uv run open-benchmark leaderboard results --out leaderboard-${{ matrix.os }}.md
+        run: uv run open-benchmark leaderboard ci-out --out leaderboard-${{ matrix.os }}.md
       - uses: actions/upload-artifact@v4
         with:
           name: open-benchmark-results-${{ matrix.os }}
-          path: results/*.jsonl
+          path: ci-out/*.jsonl
 
   aggregate:
     needs: run

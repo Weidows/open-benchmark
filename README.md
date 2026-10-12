@@ -5,6 +5,8 @@
 ```bash
 uv run open-benchmark run --suite quick --json -            # 一条命令拿到机器全部指标（JSON 到 stdout）
 uv run open-benchmark run --suite full --json results/x.jsonl
+uv run open-benchmark validate results/ --json -            # 提交前核验（重算指纹、查字段与噪声）
+uv run open-benchmark compare results/old results/new --json -   # 逐指标 delta 与 better/worse 判定
 uv run open-benchmark leaderboard results/ --out LEADERBOARD.md
 uv run open-benchmark submit results/x.jsonl --repo-dir ../open-benchmark-results --dry-run
 ```
@@ -37,10 +39,12 @@ uv tool install .
 | `open-benchmark devices [--json PATH]` | 只采集设备指纹（CPU/内存条/盘/GPU/BIOS） |
 | `open-benchmark executors [--json -]` | 列出执行器、标签与所属 suite |
 | `open-benchmark leaderboard PATH... [--bound hardware] [--metric cpu] [--out FILE]` | 把 JSONL 聚合成 markdown 榜单 |
-| `open-benchmark submit PATH... --repo-dir DIR [--dry-run]` | 把结果作为 PR 提交到榜单仓库 |
+| `open-benchmark validate PATH... [--strict] [--max-spread PCT] [--json -]` | 提交前核验：重算设备指纹、检查字段/数值/噪声，错误→退出码 1 |
+| `open-benchmark compare BASE TARGET [--suite S] [--bound B] [--tolerance PCT] [--fail-on-regression] [--json -]` | 对比两台/两次运行，逐指标给 delta 与 better/worse 判定 |
+| `open-benchmark submit PATH... --repo-dir DIR [--dry-run]` | 把结果作为 PR 提交到榜单仓库（提交前自动核验，`--force` 才绕过） |
 | `open-benchmark schema` | 打印 schema 版本与示例文档 |
 
-`run` 的退出码：`0` 全部成功（`skipped` 不算失败）、`1` 有执行器报错。
+`run` 的退出码：`0` 全部成功（`skipped` 不算失败）、`1` 有执行器报错。`validate` 退出码：`0` 无错误、`1` 有错误（`--strict` 时警告也算错）。
 
 ## 执行器与 suite
 
@@ -83,7 +87,7 @@ uv tool install .
   "run_id": "9f1c...",
   "suite": "quick",
   "device": {"fingerprint": "ab12cd34ef567890", "cpu": {"model": "..."}, "memory": {...}, "disks": [...]},
-  "env": {"tool": "open-benchmark 0.1.0", "native_toolchain": "gcc", "scale": 1.0},
+  "env": {"tool": "open-benchmark 0.2.0", "native_toolchain": "gcc", "scale": 1.0},
   "results": [
     {"name": "disk.seq", "status": "ok", "backend": "win32-unbuffered",
      "params": {"size_mb": 256, "block_kb": 4096},
@@ -96,6 +100,26 @@ uv tool install .
 
 设备指纹（`device.fingerprint`）只由「可比较的硬件字段」算出：CPU 型号、物理/逻辑核数、内存总量与每条的容量/频率、磁盘型号+容量+介质、机型、OS/架构。**主机名、序列号、时间戳不参与**，因此同款机器会落进榜单同一行。
 
+## 核验与对比（agent 用）
+
+`validate` 是提交前的闸门。它**不信任文件的自述**，而是用可比字段重算 `device.fingerprint`（对不上就说明文件被改过、或采集器漂移了），再逐条检查每个 metric 的 `bound`/`unit`/`n` 与原始 `samples` 是否自洽、数值是否有限且非负（对吞吐/延迟类单位）、`spread_pct` 是否超过阈值。错误 → 退出码 1，警告不拦（`--strict` 才拦）。
+
+```bash
+uv run open-benchmark validate results/ --json -
+# {"ok": false, "errors": 1, "warnings": 50, "issues": [{"severity":"error","code":"schema.unknown", ...}]}
+```
+
+`submit` 在写任何东西之前先跑同一套核验，发现错误直接拒绝（只有 `--force` 能绕过），所以一个坏 run 进不了榜单。
+
+`compare` 回答 agent 真正要问的那个问题——「这次比上次好还是差、差多少」：
+
+```bash
+uv run open-benchmark compare results/old results/new --suite full --json -
+uv run open-benchmark compare baseline.jsonl mine.jsonl --fail-on-regression
+```
+
+它先按 `device.fingerprint` 取中位数再做差（**先排名再平均会得到错误答案**），每条指标给出 `better / worse / same / new / missing` 判定。判定已经考虑该指标是「越高越好」还是「越低越好」（延迟类为后者），并用 `--tolerance`（默认 ±5%）把噪声归为 `same`。两侧各有多台设备时必须用 `--base-device` / `--target-device` 指定（指纹前缀或下标），免得悄悄比错了机器。`--fail-on-regression` 让它在有回退时退出码非 0，可直接当 CI 回归门。
+
 ## 榜单与 PR
 
 ```bash
@@ -106,11 +130,14 @@ uv run open-benchmark submit results/local/mine.jsonl --repo-dir ../open-benchma
 
 榜单按 `device.fingerprint` 分组、对每个指标取中位数。`quick` 与 `full` 的工作量不同，混在一起会得到不可比的数字，所以默认会提示；用 `--suite` 明确口径。
 
-`submit` 只做三件事：把 JSONL 复制进 `results/`、切分支提交、`gh pr create`。它依赖 `gh` 已登录与目标仓库是 git checkout；`--dry-run` 只打印计划。
+`submit` 先核验结果（见上），通过后只做三件事：把 JSONL 复制进 `results/`、切分支提交、`gh pr create`。它依赖 `gh` 已登录与目标仓库是 git checkout；`--dry-run` 只打印计划。
 
 ## CI
 
-[`.github/workflows/bench.yml`](.github/workflows/bench.yml)：matrix（ubuntu / windows / macos）跑 `quick` suite，产物上传为 artifact；汇总 job 把新结果放进 `results/ci/`，按 suite 分别重建 `LEADERBOARD.md`（full）与 `LEADERBOARD-quick.md`（quick），再开 PR。CI runner 是噪声很大的虚拟机，只用于同一 runner 上的回归；真机结果请用 `open-benchmark submit` 提交。
+[`.github/workflows/bench.yml`](.github/workflows/bench.yml) 有两个 job：
+
+* **checks**：`pytest -q` + `ruff check .`（新指标/新命令必须先过测试）。
+* **run → aggregate**：matrix（ubuntu / windows / macos）跑 `quick` suite 并 `validate ci-out`，产物上传为 artifact；汇总 job 把新结果放进 `results/ci/`、核验一遍、按 suite 分别重建 `LEADERBOARD.md`（full）与 `LEADERBOARD-quick.md`（quick），再开 PR。CI runner 是噪声很大的虚拟机，只用于同一 runner 上的回归；真机结果请用 `open-benchmark submit` 提交。
 
 ## 开发
 
@@ -121,6 +148,7 @@ uv run ruff check .
 
 ## Roadmap
 
+* 常驻状态监测（`monitor` / 后台采样）：把同一套执行器变成周期性采样，跑分之外也能看趋势
 * 磁盘 QD32 并发测试、DirectStorage/io_uring 后端
 * GPU 计算（OpenCL/Vulkan 查询 + 计算内核）
 * 网络（loopback 与 LAN 吞吐）

@@ -64,3 +64,4 @@
 3. `spread_pct` 大于 10% 的指标建议重跑或排除。
 4. 判断可比性时同时看 `params`（块大小/时长不同则不同口径）与 `backend`（`+fallback` 表示走了缓冲 I/O，不能和 `o_direct` 直接比）。
 5. 字段是**增量扩展**的：新指标/新字段直接加，旧字段不改名。解析方应忽略未知字段（`Run.from_dict` 就是这么做的）。
+6. 提交前先跑 `open-benchmark validate`（重算指纹 + 字段自洽），要对比两次运行/两台机器用 `open-benchmark compare`（按指纹取中位数再逐指标给判定）。

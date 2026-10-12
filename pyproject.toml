@@ -1,6 +1,6 @@
 [project]
 name = "open-benchmark"
-version = "0.1.0"
+version = "0.2.0"
 description = "Zero-dependency, agent-first hardware benchmark harness with a stable JSON schema"
 readme = "README.md"
 requires-python = ">=3.11"

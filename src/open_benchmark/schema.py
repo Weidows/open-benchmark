@@ -240,8 +240,8 @@ def write_run(run: Run, path: str | Path | None, *, jsonl: bool = True, pretty: 
     return payload
 
 
-def read_runs(paths: list[str | Path]) -> list[Run]:
-    """Read runs from JSONL / JSON files or directories."""
+def resolve_files(paths: list[str | Path]) -> list[Path]:
+    """Expand files, directories and globs into a sorted candidate file list."""
     files: list[Path] = []
     for raw in paths:
         p = Path(raw)
@@ -251,20 +251,26 @@ def read_runs(paths: list[str | Path]) -> list[Run]:
             files.append(p)
         else:  # treat as glob
             files.extend(sorted(Path().glob(str(raw))))
+    return files
+
+
+def read_run_file(path: Path) -> list[Run]:
+    """Parse one JSONL (or JSON array) file into runs."""
+    text = Path(path).read_text(encoding="utf-8").strip()
+    if not text:
+        return []
+    if text.startswith("["):  # array of runs
+        return [Run.from_dict(item) for item in json.loads(text)]
+    return [Run.from_dict(json.loads(line)) for line in text.splitlines() if line.strip()]
+
+
+def read_runs(paths: list[str | Path]) -> list[Run]:
+    """Read runs from JSONL / JSON files or directories."""
     runs: list[Run] = []
-    for f in files:
-        text = f.read_text(encoding="utf-8").strip()
-        if not text:
-            continue
-        if text.startswith("["):  # array of runs
-            for item in json.loads(text):
-                runs.append(Run.from_dict(item))
-            continue
-        for line in text.splitlines():
-            line = line.strip()
-            if line:
-                runs.append(Run.from_dict(json.loads(line)))
+    for f in resolve_files(paths):
+        runs.extend(read_run_file(f))
     return runs
+
 
 
 def runtime_env() -> dict[str, Any]:

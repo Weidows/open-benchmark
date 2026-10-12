@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-from statistics import median
-
+from open_benchmark.analysis import (
+    aggregate_by_device,
+    device_label,
+    metric_info,
+    runs_by_device,
+)
 from open_benchmark.schema import Run
 from open_benchmark.stats import format_value
 
@@ -66,49 +69,37 @@ def leaderboard(
     suite: str | None = None,
 ) -> str:
     """Aggregate many runs into a markdown leaderboard keyed on device fingerprint."""
-    if bound == "all":
-        bound = None  # type: ignore[assignment]
     suites_available = sorted({run.suite for run in runs})
-    if suite:
-        runs = [run for run in runs if run.suite == suite]
-        if not runs:
-            return f"no runs for suite {suite!r} (have: {', '.join(suites_available)})"
-    by_device: dict[str, list[Run]] = defaultdict(list)
-    for run in runs:
-        if run.device.fingerprint:
-            by_device[run.device.fingerprint].append(run)
-    if not by_device:
+    selected = [run for run in runs if run.suite == suite] if suite else runs
+    if suite and not selected:
+        return f"no runs for suite {suite!r} (have: {', '.join(suites_available)})"
+    grouped = runs_by_device(selected)
+    if not grouped:
         return "no runs with a device fingerprint found"
 
-    values: dict[str, dict[str, float]] = {}
-    for fp, device_runs in by_device.items():
-        per_metric: dict[str, list[float]] = defaultdict(list)
-        for run in device_runs:
-            for key, value in run.flat_metrics(bound=bound).items():
-                per_metric[key].append(value)
-        values[fp] = {k: median(v) for k, v in per_metric.items() if v}
-
+    values = aggregate_by_device(selected, bound=bound)
     keys = sorted({k for v in values.values() for k in v})
     if metrics:
         keys = [k for k in keys if any(m in k for m in metrics)]
 
-    labels = {fp: _device_label(runs) for fp, runs in by_device.items()}
-    header = "| metric | " + " | ".join(f"{labels[fp]}<br>`{fp}`" for fp in by_device) + " |"
-    sep = "|---" * (len(by_device) + 1) + "|"
+    labels = {fp: device_label(group) for fp, group in grouped.items()}
+    header = "| metric | " + " | ".join(f"{labels[fp]}<br>`{fp}`" for fp in grouped) + " |"
+    sep = "|---" * (len(grouped) + 1) + "|"
     rows = [header, sep]
     for key in keys:
         cells = []
-        for fp in by_device:
+        for fp in grouped:
             value = values[fp].get(key)
             cells.append(f"{value:,.2f}" if value is not None else "-")
         rows.append(f"| `{key}` | " + " | ".join(cells) + " |")
 
-    units = sorted({_unit_of(runs, k) for k in keys})
-    pooled = sorted({run.suite for run in runs})
+    units = sorted({metric_info(selected, k)[0] for k in keys})
+    pooled = sorted({run.suite for run in selected})
+    shown_bound = bound if bound not in (None, "all") else "all"
     footer = [
         "",
-        f"_{len(runs)} run(s) over {len(by_device)} device(s); values are per-device medians; "
-        f"bound={bound or 'all'}; suites: {', '.join(pooled)}; units: {', '.join(u for u in units if u)}_",
+        f"_{len(selected)} run(s) over {len(grouped)} device(s); values are per-device medians; "
+        f"bound={shown_bound}; suites: {', '.join(pooled)}; units: {', '.join(u for u in units if u)}_",
     ]
     if len(pooled) > 1:
         footer.append(
@@ -118,18 +109,32 @@ def leaderboard(
     return "\n".join(rows + footer)
 
 
-def _unit_of(runs: list[Run], key: str) -> str:
-    for run in runs:
-        for res in run.results:
-            for metric in res.metrics:
-                if f"{res.name}.{metric.key}" == key:
-                    return metric.unit
-    return ""
+def format_comparison(result: dict) -> str:
+    """Human table for a :func:`open_benchmark.analysis.compare_sets` payload."""
+    base = result["base"]
+    target = result["target"]
+    lines = [
+        f"base    {base['device']}  {base['label']}  ({base['runs']} run(s))",
+        f"target  {target['device']}  {target['label']}  ({target['runs']} run(s))",
+        f"bound={result['bound']}  suite={result['suite'] or '-'}  "
+        f"tolerance=±{result['tolerance_pct']:g}%",
+        "",
+        f"{'metric':<36} {'base':>14} {'target':>14} {'delta':>12} {'%':>9}  verdict",
+        "-" * 96,
+    ]
+    for delta in result["deltas"]:
+        change = "-" if delta["delta"] is None else f"{delta['delta']:+,.2f}"
+        pct = "-" if delta["delta_pct"] is None else f"{delta['delta_pct']:+.2f}%"
+        lines.append(
+            f"{delta['key']:<36} {_num(delta['base']):>14} {_num(delta['target']):>14} "
+            f"{change:>12} {pct:>9}  {delta['verdict']}"
+        )
+    counts = result["counts"]
+    lines.append("-" * 96)
+    lines.append(" ".join(f"{name}={counts[name]}" for name in ("better", "worse", "same", "new", "missing")))
+    return "\n".join(lines)
 
 
-def _device_label(runs: list[Run]) -> str:
-    device = runs[0].device
-    cpu = (device.cpu or {}).get("model") or "unknown cpu"
-    total = (device.memory or {}).get("total_bytes")
-    mem = f" / {total / 1024**3:.0f} GiB" if total else ""
-    return f"{cpu}{mem}"
+def _num(value: float | None) -> str:
+    return "-" if value is None else f"{value:,.2f}"
+

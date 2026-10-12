@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from open_benchmark.schema import Device, Run
+from open_benchmark.schema import Device, Metric, Result, Run
 from open_benchmark.submit import submit
 
 
@@ -24,6 +24,22 @@ def _device_with_identifiers() -> Device:
     return device
 
 
+def _valid_run(**overrides) -> Run:
+    """A minimal but schema-valid run: submit validates before touching git."""
+    return Run(
+        device=_device_with_identifiers(),
+        results=[
+            Result(
+                name="cpu.hash",
+                backend="openssl",
+                metrics=[Metric(key="sha256_mbs", value=3000.0, unit="MB/s", spread_pct=1.0)],
+            )
+        ],
+        **overrides,
+    )
+
+
+
 def test_redact_keeps_hardware_but_drops_identifiers():
     device = _device_with_identifiers()
     fingerprint = device.fingerprint
@@ -37,7 +53,7 @@ def test_redact_keeps_hardware_but_drops_identifiers():
 
 def test_submit_redacts_before_writing(tmp_path, monkeypatch):
     """submit() must write redacted JSONL even if the input file still has identifiers."""
-    run = Run(device=_device_with_identifiers())
+    run = _valid_run()
     source = tmp_path / "run.jsonl"
     source.write_text(json.dumps(run.to_dict()), encoding="utf-8")
 
@@ -71,9 +87,8 @@ def test_submit_redacts_before_writing(tmp_path, monkeypatch):
 
 
 def test_submit_dry_run_does_not_touch_git(tmp_path):
-    device = _device_with_identifiers()
     source = tmp_path / "run.jsonl"
-    source.write_text(json.dumps(Run(device=device).to_dict()), encoding="utf-8")
+    source.write_text(json.dumps(_valid_run().to_dict()), encoding="utf-8")
     repo = tmp_path / "repo"
     (repo / ".git").mkdir(parents=True)
     plan = submit([source], repo_dir=repo, dry_run=True)
@@ -83,10 +98,29 @@ def test_submit_dry_run_does_not_touch_git(tmp_path):
 
 def test_submit_rejects_non_checkout(tmp_path):
     source = tmp_path / "run.jsonl"
-    source.write_text(json.dumps(Run(device=_device_with_identifiers()).to_dict()), encoding="utf-8")
+    source.write_text(json.dumps(_valid_run().to_dict()), encoding="utf-8")
     try:
         submit([source], repo_dir=Path(tmp_path))
     except RuntimeError as exc:
         assert "not a git checkout" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("expected RuntimeError")
+
+
+def test_submit_refuses_a_run_that_fails_validation(tmp_path):
+    """An invalid run must be rejected before any git work, unless --force."""
+    run = _valid_run()
+    run.results[0].metrics = [Metric(key="x", value=1.0, unit="MB/s", n=9, samples=[1.0])]
+    source = tmp_path / "run.jsonl"
+    source.write_text(json.dumps(run.to_dict()), encoding="utf-8")
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    try:
+        submit([source], repo_dir=repo)
+    except RuntimeError as exc:
+        assert "refusing to submit" in str(exc)
+        assert "metric.n" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("expected RuntimeError")
+    # --force bypasses the gate and reaches the dry-run plan
+    assert submit([source], repo_dir=repo, dry_run=True, force=True).startswith("[dry-run]")

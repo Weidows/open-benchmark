@@ -34,6 +34,7 @@ def submit(
     title: str | None = None,
     body: str | None = None,
     dry_run: bool = False,
+    force: bool = False,
 ) -> str:
     """Copy runs into ``<repo_dir>/<target_dir>`` and open a PR. Returns the PR URL."""
     if not shutil.which("gh"):
@@ -47,6 +48,24 @@ def submit(
         raise RuntimeError("no runs found in the given paths")
     for run in runs:
         run.device.redact()  # hostnames/serials/raw blobs never leave the machine
+
+    # Validate what is actually being shipped (post-redaction), not the raw file:
+    # one bad run must not reach a shared leaderboard.
+    from open_benchmark.validate import validate_run
+
+    errors = [
+        issue
+        for run in runs
+        for issue in validate_run(run, source="<submit>")
+        if issue.severity == "error"
+    ]
+    if errors and not force:
+        detail = "; ".join(f"{issue.code}: {issue.message}" for issue in errors[:5])
+        more = "" if len(errors) <= 5 else f" (+{len(errors) - 5} more)"
+        raise RuntimeError(
+            f"refusing to submit {len(errors)} validation error(s): {detail}{more}\n"
+            "fix the collector, or pass --force to override"
+        )
 
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     fingerprints = {r.device.fingerprint or "unknown" for r in runs}

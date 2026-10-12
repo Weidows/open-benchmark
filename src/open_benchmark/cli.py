@@ -143,6 +143,53 @@ def cmd_schema(args: argparse.Namespace) -> int:
 
 
 # --------------------------------------------------------------------------
+# validate / compare
+# --------------------------------------------------------------------------
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    from open_benchmark.validate import format_report, validate_paths
+
+    report = validate_paths(args.paths, max_spread_pct=args.max_spread)
+    if args.json == "-":
+        print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+    else:
+        print(format_report(report))
+    failed = report.errors > 0 or (args.strict and report.warnings > 0)
+    return EXIT_ERROR if failed else EXIT_OK
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    from open_benchmark.analysis import compare_sets
+    from open_benchmark.report import format_comparison
+
+    base_runs = read_runs(_split([args.base]))
+    target_runs = read_runs(_split([args.target]))
+    if not base_runs or not target_runs:
+        print("compare needs runs on both sides", file=sys.stderr)
+        return EXIT_ERROR
+    payload = compare_sets(
+        base_runs,
+        target_runs,
+        base_device=args.base_device,
+        target_device=args.target_device,
+        bound=args.bound,
+        suite=args.suite,
+        metrics=_split(args.metric),
+        tolerance_pct=args.tolerance,
+    )
+    if args.json == "-":
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        print(format_comparison(payload))
+    regressions = payload["counts"]["worse"]
+    if args.fail_on_regression and regressions:
+        print(f"{regressions} metric(s) regressed beyond ±{args.tolerance:g}%", file=sys.stderr)
+        return EXIT_ERROR
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------
 # leaderboard / submit
 # --------------------------------------------------------------------------
 
@@ -179,6 +226,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
             title=args.title,
             body=args.body,
             dry_run=args.dry_run,
+            force=args.force,
         )
     )
     return EXIT_OK
@@ -227,6 +275,42 @@ def build_parser() -> argparse.ArgumentParser:
     schema = sub.add_parser("schema", help="print the schema id and an example document")
     schema.set_defaults(func=cmd_schema)
 
+    val = sub.add_parser("validate", help="check run documents before submitting them")
+    val.add_argument("paths", nargs="+", help="files, directories or globs")
+    val.add_argument(
+        "--max-spread",
+        type=float,
+        default=10.0,
+        help="warn above this sample spread in percent (default 10)",
+    )
+    val.add_argument("--strict", action="store_true", help="treat warnings as failures")
+    val.add_argument("--json", default=None, help="'-' to print a JSON report")
+    val.set_defaults(func=cmd_validate)
+
+    cmp_p = sub.add_parser("compare", help="compare one device's runs against another run set")
+    cmp_p.add_argument("base", help="baseline path(s), comma-separated")
+    cmp_p.add_argument("target", help="target path(s), comma-separated")
+    cmp_p.add_argument("--base-device", default=None, help="fingerprint (prefix) or index on the base side")
+    cmp_p.add_argument(
+        "--target-device", default=None, help="fingerprint (prefix) or index on the target side"
+    )
+    cmp_p.add_argument("--suite", default=None, choices=sorted(SUITES))
+    cmp_p.add_argument("--bound", default="hardware", choices=["hardware", "interpreter", "mixed", "all"])
+    cmp_p.add_argument("--metric", action="append", default=[], help="substring filter on metric keys")
+    cmp_p.add_argument(
+        "--tolerance",
+        type=float,
+        default=5.0,
+        help="percent within which a change counts as 'same' (default 5)",
+    )
+    cmp_p.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="exit non-zero when any metric regressed (CI regression gate)",
+    )
+    cmp_p.add_argument("--json", default=None, help="'-' to print a JSON document")
+    cmp_p.set_defaults(func=cmd_compare)
+
     board = sub.add_parser("leaderboard", help="aggregate JSONL runs into a markdown table")
     board.add_argument("paths", nargs="+", help="files, directories or globs")
     board.add_argument("--bound", default="hardware", choices=["hardware", "interpreter", "mixed", "all"])
@@ -245,6 +329,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub_p.add_argument("--title", default=None)
     sub_p.add_argument("--body", default=None)
     sub_p.add_argument("--dry-run", action="store_true")
+    sub_p.add_argument(
+        "--force",
+        action="store_true",
+        help="submit even when validation finds errors (you are on your own)",
+    )
     sub_p.set_defaults(func=cmd_submit)
     return parser
 

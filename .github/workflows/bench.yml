@@ -7,6 +7,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  checks:
+    name: tests and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Tests
+        shell: bash
+        run: |
+          uv sync
+          uv run pytest -q
+      - name: Lint
+        shell: bash
+        run: uv run ruff check .
+
   run:
     name: ${{ matrix.os }} quick suite
     runs-on: ${{ matrix.os }}
@@ -25,6 +42,9 @@ jobs:
           uv sync
           mkdir -p ci-out
           uv run open-benchmark run --suite quick --json "ci-out/${{ matrix.os }}.jsonl" --quiet
+      - name: Validate runner results
+        shell: bash
+        run: uv run open-benchmark validate ci-out
       - name: Job summary
         shell: bash
         run: uv run open-benchmark leaderboard ci-out --out leaderboard-${{ matrix.os }}.md
@@ -55,6 +75,8 @@ jobs:
           uv sync
           mkdir -p results/ci
           cp ci-results/*.jsonl results/ci/
+          # gate: a malformed run must not reach the committed leaderboard
+          uv run open-benchmark validate results/ci
           # pool everything committed, split by suite so quick and full numbers
           # never end up in the same table
           uv run open-benchmark leaderboard results --suite full --bound hardware --out LEADERBOARD.md
